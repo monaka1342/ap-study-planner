@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AP Study Planner - 応用情報技術者試験</title>
+    <!-- Google Fonts: Inter & Noto Sans JP -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap"
+        rel="stylesheet">
+    <!-- Chart.js for stats/graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div id="app">
+        <!-- Main Content Area (Dynamic Views) -->
+        <main id="main-container"></main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" data-view="dashboard">
+                <span class="nav-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                </span>
+                <span class="nav-label">ホーム</span>
+            </button>
+            <button class="nav-item" data-view="tasks">
+                <span class="nav-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 11l3 3L22 4"></path>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                    </svg>
+                </span>
+                <span class="nav-label">タスク</span>
+            </button>
+            <button class="nav-item" data-view="stats">
+                <span class="nav-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 20V10"></path>
+                        <path d="M12 20V4"></path>
+                        <path d="M6 20v-6"></path>
+                    </svg>
+                </span>
+                <span class="nav-label">分析</span>
+            </button>
+        </nav>
+
+        <!-- Modals -->
+
+        <!-- Timer Modal -->
+        <div id="timer-modal" class="modal-overlay">
+            <div class="modal-content timer-content">
+                <div class="modal-header-simple">
+                    <h3>学習タイマー</h3>
+                    <button class="modal-close-icon" onclick="closeModal('timer-modal')">×</button>
+                </div>
+                <div class="timer-display">
+                    <div id="timer-clock">00:00</div>
+                    <div id="timer-task-info">
+                        <span id="timer-task-badge" class="badge">インプット</span>
+                        <h4 id="timer-task-title">タスク名</h4>
+                    </div>
+                </div>
+                <div class="timer-controls">
+                    <button id="timer-toggle-btn" class="btn btn-primary btn-lg btn-round">
+                        ⏸ 一時停止
+                    </button>
+                    <button id="timer-stop-btn" class="btn btn-danger btn-lg btn-round">
+                        ⏹ 終了
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Task Edit/Create Modal -->
+        <div id="task-modal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="task-modal-title">タスク作成</h3>
+                    <button class="modal-close-icon" onclick="closeModal('task-modal')">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>タイトル</label>
+                        <input type="text" id="edit-task-title" placeholder="ネットーワーク基礎 復習など">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col">
+                            <label>分野</label>
+                            <select id="edit-task-cat">
+                                <option value="テクノロジ">テクノロジ</option>
+                                <option value="マネジメント">マネジメント</option>
+                                <option value="ストラテジ">ストラテジ</option>
+                                <option value="午後演習">午後演習</option>
+                                <option value="過去問">過去問</option>
+                            </select>
+                        </div>
+                        <div class="form-group col">
+                            <label>種別</label>
+                            <select id="edit-task-type">
+                                <option value="インプット">インプット</option>
+                                <option value="過去問">過去問</option>
+                                <option value="復習">復習</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col">
+                            <label>日付</label>
+                            <input type="date" id="edit-task-date">
+                        </div>
+                        <div class="form-group col">
+                            <label>時間</label>
+                            <select id="edit-task-dur">
+                                <option value="15">15分</option>
+                                <option value="30">30分</option>
+                                <option value="45">45分</option>
+                                <option value="60">60分</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>優先度</label>
+                        <div class="segmented-control">
+                            <input type="radio" name="prio" value="low" id="p-low"><label for="p-low">低</label>
+                            <input type="radio" name="prio" value="medium" id="p-med" checked><label
+                                for="p-med">中</label>
+                            <input type="radio" name="prio" value="high" id="p-high"><label for="p-high">高</label>
+                        </div>
+                    </div>
+                    <button id="save-task-btn" class="btn btn-primary btn-block">保存</button>
+                    <button id="delete-task-btn" class="btn btn-danger btn-block btn-text hidden">このタスクを削除</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Modal (Initial Setup & Config) -->
+        <div id="settings-modal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>学習設定</h3>
+                    <button class="modal-close-icon" onclick="closeModal('settings-modal')">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>試験日</label>
+                        <input type="date" id="setting-exam-date" value="2026-04-19">
+                        <small class="hint">デフォルト: 2026年春期試験想定</small>
+                    </div>
+                    <div class="form-group">
+                        <label>1日の学習時間 (分)</label>
+                        <div class="range-wrapper">
+                            <input type="range" id="setting-daily-mins" min="15" max="180" step="15" value="45">
+                            <span id="setting-daily-disp">45分</span>
+                        </div>
+                        <small class="hint">30〜60分がおすすめです</small>
+                    </div>
+                    <button id="save-settings-btn" class="btn btn-primary btn-block">
+                        計画を自動生成して保存
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+
+</html>
