@@ -181,7 +181,7 @@ window.switchTaskTab = function (tab) {
 };
 
 function renderDashboard(container) {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getTodayStr();
     const todaysTasks = state.tasks.filter(t => t.date === todayStr);
     const completed = todaysTasks.filter(t => t.status === 'completed').length;
     const total = todaysTasks.length;
@@ -359,7 +359,13 @@ function renderTaskItem(t, showPlay = true) {
 }
 
 // --- Helpers ---
-function getTodayStr() { return new Date().toISOString().split('T')[0]; }
+function getTodayStr() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
 
 // --- Interaction Actions ---
 window.toggleTaskStatus = (id) => {
