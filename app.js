@@ -42,8 +42,35 @@ let state = {
 // --- Initialization ---
 function init() {
     loadData();
-    if (state.tasks.length === 0) generateAutoPlan();
-    else rolloverTasks();
+
+    // データが存在するかどうかの詳細なチェック
+    console.log('Init - tasks count:', state.tasks.length);
+    console.log('Init - localStorage raw:', localStorage.getItem(STORAGE_KEY) ? 'exists' : 'empty');
+
+    if (state.tasks.length === 0) {
+        // localStorageにデータがあるのにtasksが空の場合は問題
+        const hasStoredData = localStorage.getItem(STORAGE_KEY);
+        if (hasStoredData) {
+            console.error('Warning: localStorage has data but tasks array is empty!');
+            // 再度読み込みを試みる
+            try {
+                const data = JSON.parse(hasStoredData);
+                if (data.tasks && data.tasks.length > 0) {
+                    state.tasks = data.tasks;
+                    console.log('Recovery: Loaded', state.tasks.length, 'tasks');
+                }
+            } catch (e) {
+                console.error('Recovery failed:', e);
+            }
+        }
+
+        // それでも空なら新規プラン生成（初回のみ）
+        if (state.tasks.length === 0) {
+            generateAutoPlan();
+        }
+    } else {
+        rolloverTasks();
+    }
 
     setupRouting();
     setupModalEvents();
@@ -56,12 +83,21 @@ function init() {
 // --- Data Persistence ---
 function loadData() {
     const raw = localStorage.getItem(STORAGE_KEY);
+    console.log('loadData - raw data exists:', !!raw);
+
     if (raw) {
         try {
             const data = JSON.parse(raw);
+            console.log('loadData - parsed data:', {
+                tasksCount: data.tasks ? data.tasks.length : 0,
+                logsCount: data.logs ? data.logs.length : 0,
+                hasSettings: !!data.settings
+            });
+
             // 明示的にtasksとlogsを配列として保持
-            if (data.tasks && Array.isArray(data.tasks)) {
+            if (data.tasks && Array.isArray(data.tasks) && data.tasks.length > 0) {
                 state.tasks = data.tasks;
+                console.log('loadData - tasks loaded:', state.tasks.length);
             }
             if (data.logs && Array.isArray(data.logs)) {
                 state.logs = data.logs;
@@ -72,10 +108,12 @@ function loadData() {
             // viewStateはリセット、activeTimerはnullに
             state.viewState = { dashboardTab: 'input' };
             state.activeTimer = null;
-            console.log('Data loaded:', state.tasks.length, 'tasks');
         } catch (e) {
-            console.error('Data load error', e);
+            console.error('Data load error:', e);
+            console.error('Raw data that failed:', raw.substring(0, 200));
         }
+    } else {
+        console.log('loadData - no stored data found, will create new plan');
     }
 }
 function saveData() {
