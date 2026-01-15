@@ -595,6 +595,10 @@ function setupTimerEvents() {
             const effectiveMs = endTime - state.activeTimer.start - state.activeTimer.totalPaused;
             const dur = Math.ceil(effectiveMs / 1000 / 60);
 
+            const task = state.tasks.find(x => x.id === state.activeTimer.taskId);
+            const targetDur = task ? task.dur : 0;
+            const remaining = targetDur - dur;
+
             // Log it
             if (dur > 0) {
                 state.logs.push({
@@ -604,9 +608,16 @@ function setupTimerEvents() {
                     date: getTodayStr()
                 });
 
-                if (confirm(`${dur}分学習しました。タスクを完了にしますか？`)) {
-                    const t = state.tasks.find(x => x.id === state.activeTimer.taskId);
-                    if (t) t.status = 'completed';
+                if (remaining <= 0) {
+                    // 目標時間を達成した場合
+                    if (confirm(`🎉 ${dur}分学習しました！目標達成！\nタスクを完了にしますか？`)) {
+                        if (task) task.status = 'completed';
+                    }
+                } else {
+                    // 目標時間に満たない場合
+                    alert(`${dur}分学習しました。\n残り ${remaining}分 です。引き続き頑張りましょう！`);
+                    // 残り時間をタスクに反映
+                    if (task) task.dur = remaining;
                 }
             }
 
