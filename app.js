@@ -59,8 +59,20 @@ function loadData() {
     if (raw) {
         try {
             const data = JSON.parse(raw);
-            state = { ...state, ...data, viewState: { dashboardTab: 'input' } }; // ViewStateは保存しない/リセット
-            if (state.activeTimer) state.activeTimer = null;
+            // 明示的にtasksとlogsを配列として保持
+            if (data.tasks && Array.isArray(data.tasks)) {
+                state.tasks = data.tasks;
+            }
+            if (data.logs && Array.isArray(data.logs)) {
+                state.logs = data.logs;
+            }
+            if (data.settings) {
+                state.settings = { ...state.settings, ...data.settings };
+            }
+            // viewStateはリセット、activeTimerはnullに
+            state.viewState = { dashboardTab: 'input' };
+            state.activeTimer = null;
+            console.log('Data loaded:', state.tasks.length, 'tasks');
         } catch (e) {
             console.error('Data load error', e);
         }
