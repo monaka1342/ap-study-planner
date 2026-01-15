@@ -532,8 +532,22 @@ function setupSettingsEvents() {
         saveBtn.addEventListener('click', () => {
             state.settings.examDate = document.getElementById('setting-exam-date').value;
             state.settings.dailyTargetMinutes = parseInt(range.value);
-            generateAutoPlan(); // Regenerate
+            // 設定のみ保存（プランは再生成しない）
+            saveData();
             closeModal('settings-modal');
+            render('dashboard');
+            alert('設定を保存しました');
+        });
+    }
+
+    // 計画再生成ボタン（既存のタスクを全て削除して新規作成）
+    const regenerateBtn = document.getElementById('regenerate-plan-btn');
+    if (regenerateBtn) {
+        regenerateBtn.addEventListener('click', () => {
+            if (confirm('⚠️ 警告：現在の学習計画と記録が全て削除されます。\n\n本当に計画を再生成しますか？')) {
+                generateAutoPlan();
+                closeModal('settings-modal');
+            }
         });
     }
 }
