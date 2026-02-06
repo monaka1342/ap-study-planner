@@ -5,6 +5,7 @@
 
 // --- Constants ---
 const STORAGE_KEY = 'ap_planner_v3_data';
+const STORAGE_BACKUP_KEY = 'ap_planner_v3_backup';
 const CATEGORIES = ['テクノロジ', 'マネジメント', 'ストラテジ', '午後演習', '過去問'];
 // 応用情報技術者試験 公式シラバスに基づく大分類を中心に12章構成へ変更
 // ※ 基礎理論・アルゴリズムは最後に回しています
@@ -45,30 +46,24 @@ function init() {
 
     // データが存在するかどうかの詳細なチェック
     console.log('Init - tasks count:', state.tasks.length);
+    console.log('Init - logs count:', state.logs.length);
     console.log('Init - localStorage raw:', localStorage.getItem(STORAGE_KEY) ? 'exists' : 'empty');
+    console.log('Init - backup exists:', localStorage.getItem(STORAGE_BACKUP_KEY) ? 'yes' : 'no');
 
-    if (state.tasks.length === 0) {
-        // localStorageにデータがあるのにtasksが空の場合は問題
-        const hasStoredData = localStorage.getItem(STORAGE_KEY);
-        if (hasStoredData) {
-            console.error('Warning: localStorage has data but tasks array is empty!');
-            // 再度読み込みを試みる
-            try {
-                const data = JSON.parse(hasStoredData);
-                if (data.tasks && data.tasks.length > 0) {
-                    state.tasks = data.tasks;
-                    console.log('Recovery: Loaded', state.tasks.length, 'tasks');
-                }
-            } catch (e) {
-                console.error('Recovery failed:', e);
-            }
-        }
+    // 自動プラン生成は、明示的にデータがない場合のみ
+    // logsが存在する場合は過去に利用があったことを意味するので、自動生成しない
+    const hasAnyData = state.tasks.length > 0 || state.logs.length > 0 ||
+        localStorage.getItem(STORAGE_KEY) || localStorage.getItem(STORAGE_BACKUP_KEY);
 
-        // それでも空なら新規プラン生成（初回のみ）
-        if (state.tasks.length === 0) {
-            generateAutoPlan();
-        }
-    } else {
+    if (state.tasks.length === 0 && !hasAnyData) {
+        // 完全な新規ユーザーの場合のみ自動生成
+        console.log('Init - First time user, generating auto plan');
+        generateAutoPlan();
+    } else if (state.tasks.length === 0 && state.logs.length > 0) {
+        // タスクは空だがログがある = 過去のデータが消えた可能性
+        console.warn('Init - Tasks empty but logs exist. User may need to regenerate plan manually.');
+        // 自動生成はしない。ユーザーに判断を委ねる
+    } else if (state.tasks.length > 0) {
         rolloverTasks();
     }
 
@@ -82,8 +77,17 @@ function init() {
 
 // --- Data Persistence ---
 function loadData() {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    let raw = localStorage.getItem(STORAGE_KEY);
     console.log('loadData - raw data exists:', !!raw);
+
+    // メインデータが破損または存在しない場合、バックアップから復元を試みる
+    if (!raw) {
+        const backup = localStorage.getItem(STORAGE_BACKUP_KEY);
+        if (backup) {
+            console.log('loadData - no main data, trying backup...');
+            raw = backup;
+        }
+    }
 
     if (raw) {
         try {
@@ -95,12 +99,13 @@ function loadData() {
             });
 
             // 明示的にtasksとlogsを配列として保持
-            if (data.tasks && Array.isArray(data.tasks) && data.tasks.length > 0) {
+            if (data.tasks && Array.isArray(data.tasks)) {
                 state.tasks = data.tasks;
                 console.log('loadData - tasks loaded:', state.tasks.length);
             }
             if (data.logs && Array.isArray(data.logs)) {
                 state.logs = data.logs;
+                console.log('loadData - logs loaded:', state.logs.length);
             }
             if (data.settings) {
                 state.settings = { ...state.settings, ...data.settings };
@@ -108,23 +113,66 @@ function loadData() {
             // viewStateはリセット、activeTimerはnullに
             state.viewState = { dashboardTab: 'input' };
             state.activeTimer = null;
+
+            // 読み込み成功したら、これをバックアップとして保存
+            if (state.tasks.length > 0 || state.logs.length > 0) {
+                localStorage.setItem(STORAGE_BACKUP_KEY, raw);
+            }
         } catch (e) {
             console.error('Data load error:', e);
             console.error('Raw data that failed:', raw.substring(0, 200));
+
+            // パースに失敗した場合、バックアップから復元を試みる
+            const backup = localStorage.getItem(STORAGE_BACKUP_KEY);
+            if (backup && backup !== raw) {
+                console.log('loadData - trying backup after parse error...');
+                try {
+                    const backupData = JSON.parse(backup);
+                    if (backupData.tasks) state.tasks = backupData.tasks;
+                    if (backupData.logs) state.logs = backupData.logs;
+                    if (backupData.settings) state.settings = { ...state.settings, ...backupData.settings };
+                    console.log('loadData - restored from backup');
+                } catch (e2) {
+                    console.error('Backup restore also failed:', e2);
+                }
+            }
         }
     } else {
         console.log('loadData - no stored data found, will create new plan');
     }
 }
+
 function saveData() {
-    // viewStateを除外して保存したいが、簡易実装のため丸ごと保存しても支障は少ない
-    // ただしload時にリセットしているのでOK
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    // 保存前に現在のデータをバックアップ
+    const currentData = localStorage.getItem(STORAGE_KEY);
+    if (currentData) {
+        try {
+            const parsed = JSON.parse(currentData);
+            // タスクまたはログが存在する場合のみバックアップ
+            if ((parsed.tasks && parsed.tasks.length > 0) || (parsed.logs && parsed.logs.length > 0)) {
+                localStorage.setItem(STORAGE_BACKUP_KEY, currentData);
+            }
+        } catch (e) {
+            // パース失敗は無視
+        }
+    }
+
+    // 新しいデータを保存
+    const dataToSave = {
+        tasks: state.tasks,
+        logs: state.logs,
+        settings: state.settings
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+    console.log('saveData - saved:', { tasks: state.tasks.length, logs: state.logs.length });
 }
 
 // --- Logic: Auto Plan Generator ---
-function generateAutoPlan() {
+function generateAutoPlan(preserveLogs = true) {
+    // 重要: ログ（学習記録）は保持する
+    const savedLogs = preserveLogs ? [...state.logs] : [];
     state.tasks = [];
+    state.logs = savedLogs;
 
     // 今日は空けておき、明日から計画を埋める
     const today = new Date();
