@@ -5,7 +5,7 @@ import TasksPage from './components/TasksPage'
 import StatsPage from './components/StatsPage'
 import BottomNav from './components/BottomNav'
 import SettingsModal from './components/SettingsModal'
-import TimerModal from './components/TimerModal'
+import StudyInputModal from './components/TimerModal'
 
 function App() {
   const { activeTab } = useStore()
@@ -31,7 +31,7 @@ function App() {
       </main>
       <BottomNav />
       <SettingsModal />
-      <TimerModal
+      <StudyInputModal
         task={timerTask}
         isOpen={isTimerOpen}
         onClose={handleCloseTimer}
