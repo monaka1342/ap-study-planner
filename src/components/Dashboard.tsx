@@ -2,13 +2,17 @@ import { motion } from 'framer-motion'
 import { format, differenceInDays } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { Settings, BookOpen, Target, Clock } from 'lucide-react'
-import { useStore } from '../stores/useStore'
+import { useStore, Task } from '../stores/useStore'
 import { Card } from './ui/card'
 import { Button } from './ui/button'
 import { Progress } from './ui/progress'
 import TaskCard from './TaskCard'
 
-export default function Dashboard() {
+interface DashboardProps {
+    onPlayTask?: (task: Task) => void
+}
+
+export default function Dashboard({ onPlayTask }: DashboardProps) {
     const { tasks, settings, logs, setSettingsOpen } = useStore()
 
     const today = format(new Date(), 'yyyy-MM-dd')
@@ -146,7 +150,7 @@ export default function Dashboard() {
                                 </h3>
                                 <div className="space-y-3">
                                     {inputTasks.map((task, index) => (
-                                        <TaskCard key={task.id} task={task} index={index} />
+                                        <TaskCard key={task.id} task={task} index={index} onPlay={onPlayTask} />
                                     ))}
                                 </div>
                             </div>
@@ -160,7 +164,7 @@ export default function Dashboard() {
                                 </h3>
                                 <div className="space-y-3">
                                     {outputTasks.map((task, index) => (
-                                        <TaskCard key={task.id} task={task} index={index} />
+                                        <TaskCard key={task.id} task={task} index={index} onPlay={onPlayTask} />
                                     ))}
                                 </div>
                             </div>

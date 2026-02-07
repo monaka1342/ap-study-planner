@@ -1,12 +1,16 @@
 import { motion } from 'framer-motion'
 import { Plus, BookOpen, Target } from 'lucide-react'
-import { useStore } from '../stores/useStore'
+import { useStore, Task } from '../stores/useStore'
 import { Card } from './ui/card'
 import { Button } from './ui/button'
 import TaskCard from './TaskCard'
 import { useState } from 'react'
 
-export default function TasksPage() {
+interface TasksPageProps {
+    onPlayTask?: (task: Task) => void
+}
+
+export default function TasksPage({ onPlayTask }: TasksPageProps) {
     const { tasks } = useStore()
     const [activeTab, setActiveTab] = useState<'input' | 'output'>('input')
 
@@ -47,8 +51,8 @@ export default function TasksPage() {
                     <button
                         onClick={() => setActiveTab('input')}
                         className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 ${activeTab === 'input'
-                                ? 'bg-primary text-white shadow-lg shadow-primary/25'
-                                : 'text-muted-foreground hover:text-foreground'
+                            ? 'bg-primary text-white shadow-lg shadow-primary/25'
+                            : 'text-muted-foreground hover:text-foreground'
                             }`}
                     >
                         <BookOpen className="h-4 w-4" />
@@ -57,8 +61,8 @@ export default function TasksPage() {
                     <button
                         onClick={() => setActiveTab('output')}
                         className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 ${activeTab === 'output'
-                                ? 'bg-primary text-white shadow-lg shadow-primary/25'
-                                : 'text-muted-foreground hover:text-foreground'
+                            ? 'bg-primary text-white shadow-lg shadow-primary/25'
+                            : 'text-muted-foreground hover:text-foreground'
                             }`}
                     >
                         <Target className="h-4 w-4" />
@@ -84,7 +88,7 @@ export default function TasksPage() {
                     </Card>
                 ) : (
                     displayTasks.map((task, index) => (
-                        <TaskCard key={task.id} task={task} index={index} />
+                        <TaskCard key={task.id} task={task} index={index} onPlay={onPlayTask} />
                     ))
                 )}
             </motion.div>

@@ -8,6 +8,7 @@ import { cn } from '../lib/utils'
 interface TaskCardProps {
     task: Task
     index: number
+    onPlay?: (task: Task) => void
 }
 
 const categoryColors: Record<string, string> = {
@@ -18,9 +19,16 @@ const categoryColors: Record<string, string> = {
     '午後演習': 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400',
 }
 
-export default function TaskCard({ task, index }: TaskCardProps) {
+export default function TaskCard({ task, index, onPlay }: TaskCardProps) {
     const { toggleTaskStatus } = useStore()
     const isCompleted = task.status === 'completed'
+
+    const handlePlay = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        if (onPlay) {
+            onPlay(task)
+        }
+    }
 
     return (
         <motion.div
@@ -79,6 +87,7 @@ export default function TaskCard({ task, index }: TaskCardProps) {
                     <Button
                         size="icon"
                         variant="ghost"
+                        onClick={handlePlay}
                         className="h-10 w-10 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-white flex-shrink-0"
                     >
                         <Play className="h-4 w-4 ml-0.5" />
